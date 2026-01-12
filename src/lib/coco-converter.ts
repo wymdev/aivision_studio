@@ -79,7 +79,7 @@ export function convertCocoToSimpleFormat(cocoData: CocoFormat): SimpleGroundTru
       console.log('First image annotations:', imageAnnotations.length);
     }
     
-    const simpleAnnotations: SimpleGroundTruth[] = imageAnnotations.map((ann) => {
+    const simpleAnnotations: SimpleGroundTruth[] = imageAnnotations.map((ann, annIdx) => {
       // COCO bbox format: [x, y, width, height] where x,y is top-left corner
       // We need center x, center y, width, height
       const [x, y, width, height] = ann.bbox;
@@ -92,7 +92,8 @@ export function convertCocoToSimpleFormat(cocoData: CocoFormat): SimpleGroundTru
         class: categoryMap.get(ann.category_id) || `class_${ann.category_id}`,
       };
       
-      if (idx === 0 && simpleAnnotations.length === 0) {
+      // Log first annotation of first image
+      if (idx === 0 && annIdx === 0) {
         console.log('First annotation COCO:', { x, y, width, height, category: ann.category_id });
         console.log('First annotation converted:', converted);
       }
