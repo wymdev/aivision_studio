@@ -16,10 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Roboflow-style high-saturation bright color palette
 const COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
-  "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B739", "#52BE80",
-  "#FF8A80", "#82B1FF", "#B9F6CA", "#FFD180", "#EA80FC"
+  "#FF3838", "#FF9D97", "#FF701F", "#FFB21D", "#CFD231", 
+  "#48F90A", "#92CC17", "#3DDB86", "#1A9334", "#00D4BB",
+  "#2C99A8", "#00C2FF", "#344593", "#6473FF", "#0018EC",
+  "#8438FF", "#520085", "#CB38FF", "#FF95C8", "#FF37C7"
 ];
 
 export default function HomePage() {
@@ -123,6 +125,8 @@ export default function HomePage() {
     setDetectionVisibility(newVisibility);
   };
 
+
+
   const filteredResults = results
     ? results.predictions.filter(
         (pred) =>
@@ -155,180 +159,109 @@ export default function HomePage() {
 
     if (!ctx) return;
 
-    img.onload = () => {
+    const drawDetections = () => {
+      // Clear and set canvas size
       canvas.width = img.width;
       canvas.height = img.height;
       
-      // Enable smooth rendering for better quality
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      
+      // Draw the original image first
       ctx.drawImage(img, 0, 0);
 
+      // Set up for precise drawing
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+
+      // Process each visible detection
       results.predictions.forEach((prediction, idx) => {
-        // Check if this detection is visible (default to true if not set)
         if (detectionVisibility[idx] === false) return;
 
         const color = classColors[prediction.class];
-        const x = prediction.x - prediction.width / 2;
-        const y = prediction.y - prediction.height / 2;
+        const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
 
-        // Draw filled polygon if points are available, otherwise use rectangle
-        if (prediction.points && prediction.points.length > 0) {
-          // Filter out invalid points
-          const validPoints = prediction.points.filter(p => 
-            p && typeof p.x === 'number' && typeof p.y === 'number' && 
-            !isNaN(p.x) && !isNaN(p.y)
-          );
-          
-          if (validPoints.length < 3) {
-            // Not enough points for a polygon, fallback to rectangle
-            return;
-          }
-          
-          // Draw shadow for depth
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-          
-          // Draw the exact polygon shape with straight lines
-          ctx.beginPath();
-          ctx.moveTo(validPoints[0].x, validPoints[0].y);
-          
-          for (let i = 1; i < validPoints.length; i++) {
-            ctx.lineTo(validPoints[i].x, validPoints[i].y);
-          }
-          
-          ctx.closePath();
-          
-          // Fill with semi-transparent color
-          ctx.fillStyle = color + "35"; // 35 = ~20% opacity for subtle fill
-          ctx.fill();
-          
-          ctx.restore();
-          
-          // Draw crisp border (no shadow)
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2.5;
-          ctx.lineJoin = 'round'; // Smooth corners
-          ctx.lineCap = 'round'; // Smooth ends
-          ctx.stroke();
-          
-          // Find top-left corner for label placement
-          const minX = Math.min(...validPoints.map(p => p.x));
-          const minY = Math.min(...validPoints.map(p => p.y));
-          
-          const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
-          ctx.font = "600 14px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-          const textWidth = ctx.measureText(label).width;
-          const textHeight = 22;
-          const padding = 8;
-
-          // Label background with gradient and shadow
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 2;
-          
-          const gradient = ctx.createLinearGradient(
-            minX, 
-            minY - textHeight - padding, 
-            minX, 
-            minY
-          );
-          gradient.addColorStop(0, color);
-          gradient.addColorStop(1, color + "E6"); // Slight transparency at bottom
-
-          ctx.fillStyle = gradient;
-          ctx.roundRect(
-            minX - 2, 
-            minY - textHeight - padding, 
-            textWidth + padding * 2, 
-            textHeight + padding,
-            4 // Rounded corners
-          );
-          ctx.fill();
-          
-          ctx.restore();
-
-          // Label text with slight shadow for readability
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-          ctx.shadowBlur = 2;
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillText(label, minX + padding - 2, minY - 8);
-          ctx.restore();
+        // Try polygon first, then rectangle fallback
+        if (prediction.points && prediction.points.length >= 3) {
+          drawPolygon(ctx, prediction.points, color, label);
         } else {
-          // Fallback to rectangle with fill
-          const rectX = Math.round(x);
-          const rectY = Math.round(y);
-          const rectW = Math.round(prediction.width);
-          const rectH = Math.round(prediction.height);
-          
-          // Shadow for rectangle
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-          
-          ctx.fillStyle = color + "35"; // Semi-transparent fill
-          ctx.fillRect(rectX, rectY, rectW, rectH);
-          
-          ctx.restore();
-          
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(rectX, rectY, rectW, rectH);
-
-          const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
-          ctx.font = "600 14px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-          const textWidth = ctx.measureText(label).width;
-          const textHeight = 22;
-          const padding = 8;
-
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 2;
-          
-          const gradient = ctx.createLinearGradient(
-            rectX, 
-            rectY - textHeight - padding, 
-            rectX, 
-            rectY
-          );
-          gradient.addColorStop(0, color);
-          gradient.addColorStop(1, color + "E6");
-
-          ctx.fillStyle = gradient;
-          ctx.roundRect(
-            rectX - 2, 
-            rectY - textHeight - padding, 
-            textWidth + padding * 2, 
-            textHeight + padding,
-            4
-          );
-          ctx.fill();
-          
-          ctx.restore();
-
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-          ctx.shadowBlur = 2;
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillText(label, rectX + padding - 2, rectY - 8);
-          ctx.restore();
+          drawRectangle(ctx, prediction, color, label);
         }
       });
     };
 
+    // Helper: Convert Hex to RGBA for transparency
+    const hexToRgba = (hex: string, alpha: number): string => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const drawPolygon = (ctx: CanvasRenderingContext2D, points: Array<{x: number, y: number}>, color: string, label: string) => {
+      if (!points || points.length < 3) return;
+
+      // 1. Draw the Precise Polygon
+      ctx.beginPath();
+      points.forEach((pt, index) => {
+        if (index === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.closePath();
+
+      // Fill with transparency
+      ctx.fillStyle = hexToRgba(color, 0.4);
+      ctx.fill();
+
+      // Solid Outline
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 2. Draw Label at top-left of polygon
+      const minY = Math.min(...points.map(p => p.y));
+      const minX = Math.min(...points.map(p => p.x));
+      drawLabel(ctx, minX, minY, label, color);
+    };
+
+    const drawRectangle = (ctx: CanvasRenderingContext2D, prediction: any, color: string, label: string) => {
+      const x = prediction.x - prediction.width / 2;
+      const y = prediction.y - prediction.height / 2;
+      const w = prediction.width;
+      const h = prediction.height;
+
+      // Fill with transparency
+      ctx.fillStyle = hexToRgba(color, 0.4);
+      ctx.fillRect(x, y, w, h);
+
+      // Solid Outline
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
+
+      // Draw label at top-left corner
+      drawLabel(ctx, x, y, label, color);
+    };
+
+    const drawLabel = (ctx: CanvasRenderingContext2D, x: number, y: number, text: string, color: string) => {
+      ctx.font = "bold 14px Arial";
+      const padding = 4;
+      const metrics = ctx.measureText(text);
+      const h = 20;
+
+      // Label Background
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y - h, metrics.width + padding * 2, h);
+
+      // Label Text
+      ctx.fillStyle = "white";
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(text, x + padding, y - 6);
+    };
+
+    // Handle image loading
     if (img.complete) {
-      img.onload(null as any);
+      drawDetections();
+    } else {
+      img.onload = drawDetections;
     }
   }, [results, selectedImage, detectionVisibility, classColors]);
 
