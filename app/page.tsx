@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { Upload, Sparkles, Image as ImageIcon, X, Eye, EyeOff, Zap, Target } from "lucide-react";
 import { roboflowService } from "@/services/roboflow.service";
 import {
@@ -27,7 +28,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<RoboflowResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [labelVisibility, setLabelVisibility] = useState<LabelVisibility>({});
+  const [detectionVisibility, setDetectionVisibility] = useState<Record<number, boolean>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [zoom, setZoom] = useState(100);
@@ -82,13 +83,12 @@ export default function HomePage() {
       const response = await roboflowService.detectObjects(imageFile);
       setResults(response);
 
-      const visibility: LabelVisibility = {};
-      response.predictions.forEach((pred) => {
-        if (!(pred.class in visibility)) {
-          visibility[pred.class] = true;
-        }
+      // Initialize all detections as visible
+      const visibility: Record<number, boolean> = {};
+      response.predictions.forEach((_, idx) => {
+        visibility[idx] = true;
       });
-      setLabelVisibility(visibility);
+      setDetectionVisibility(visibility);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze image");
     } finally {
@@ -96,19 +96,31 @@ export default function HomePage() {
     }
   };
 
-  const toggleLabel = (className: string) => {
-    setLabelVisibility((prev) => ({
+  const toggleDetection = (index: number) => {
+    setDetectionVisibility((prev) => ({
       ...prev,
-      [className]: !prev[className],
+      [index]: !prev[index],
     }));
   };
 
-  const toggleAllLabels = (visible: boolean) => {
-    const newVisibility = Object.keys(labelVisibility).reduce((acc, key) => {
-      acc[key] = visible;
+  const toggleAllDetections = (visible: boolean) => {
+    if (!results) return;
+    const newVisibility = results.predictions.reduce((acc, _, idx) => {
+      acc[idx] = visible;
       return acc;
-    }, {} as LabelVisibility);
-    setLabelVisibility(newVisibility);
+    }, {} as Record<number, boolean>);
+    setDetectionVisibility(newVisibility);
+  };
+
+  const toggleClassDetections = (className: string, visible: boolean) => {
+    if (!results) return;
+    const newVisibility = { ...detectionVisibility };
+    results.predictions.forEach((pred, idx) => {
+      if (pred.class === className) {
+        newVisibility[idx] = visible;
+      }
+    });
+    setDetectionVisibility(newVisibility);
   };
 
   const filteredResults = results
@@ -146,54 +158,209 @@ export default function HomePage() {
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
+      
+      // Enable smooth rendering for better quality
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
       ctx.drawImage(img, 0, 0);
 
-      results.predictions.forEach((prediction) => {
-        if (!labelVisibility[prediction.class]) return;
+      results.predictions.forEach((prediction, idx) => {
+        // Check if this detection is visible (default to true if not set)
+        if (detectionVisibility[idx] === false) return;
 
         const color = classColors[prediction.class];
         const x = prediction.x - prediction.width / 2;
         const y = prediction.y - prediction.height / 2;
 
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, prediction.width, prediction.height);
-        ctx.shadowBlur = 0;
+        // Draw filled polygon if points are available, otherwise use rectangle
+        if (prediction.points && prediction.points.length > 0) {
+          // Filter out invalid points
+          const validPoints = prediction.points.filter(p => 
+            p && typeof p.x === 'number' && typeof p.y === 'number' && 
+            !isNaN(p.x) && !isNaN(p.y)
+          );
+          
+          if (validPoints.length < 3) {
+            // Not enough points for a polygon, fallback to rectangle
+            return;
+          }
+          
+          // Draw shadow for depth
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+          
+          // Draw the exact polygon shape with straight lines
+          ctx.beginPath();
+          ctx.moveTo(validPoints[0].x, validPoints[0].y);
+          
+          for (let i = 1; i < validPoints.length; i++) {
+            ctx.lineTo(validPoints[i].x, validPoints[i].y);
+          }
+          
+          ctx.closePath();
+          
+          // Fill with semi-transparent color
+          ctx.fillStyle = color + "35"; // 35 = ~20% opacity for subtle fill
+          ctx.fill();
+          
+          ctx.restore();
+          
+          // Draw crisp border (no shadow)
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
+          ctx.lineJoin = 'round'; // Smooth corners
+          ctx.lineCap = 'round'; // Smooth ends
+          ctx.stroke();
+          
+          // Find top-left corner for label placement
+          const minX = Math.min(...validPoints.map(p => p.x));
+          const minY = Math.min(...validPoints.map(p => p.y));
+          
+          const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
+          ctx.font = "600 14px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+          const textWidth = ctx.measureText(label).width;
+          const textHeight = 22;
+          const padding = 8;
 
-        const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
-        ctx.font = "bold 16px Inter, system-ui, sans-serif";
-        const textWidth = ctx.measureText(label).width;
-        const textHeight = 26;
+          // Label background with gradient and shadow
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 2;
+          
+          const gradient = ctx.createLinearGradient(
+            minX, 
+            minY - textHeight - padding, 
+            minX, 
+            minY
+          );
+          gradient.addColorStop(0, color);
+          gradient.addColorStop(1, color + "E6"); // Slight transparency at bottom
 
-        const gradient = ctx.createLinearGradient(x, y - textHeight, x, y);
-        gradient.addColorStop(0, color);
-        gradient.addColorStop(1, color + "DD");
+          ctx.fillStyle = gradient;
+          ctx.roundRect(
+            minX - 2, 
+            minY - textHeight - padding, 
+            textWidth + padding * 2, 
+            textHeight + padding,
+            4 // Rounded corners
+          );
+          ctx.fill();
+          
+          ctx.restore();
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, y - textHeight - 5, textWidth + 14, textHeight + 5);
+          // Label text with slight shadow for readability
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 2;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillText(label, minX + padding - 2, minY - 8);
+          ctx.restore();
+        } else {
+          // Fallback to rectangle with fill
+          const rectX = Math.round(x);
+          const rectY = Math.round(y);
+          const rectW = Math.round(prediction.width);
+          const rectH = Math.round(prediction.height);
+          
+          // Shadow for rectangle
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+          
+          ctx.fillStyle = color + "35"; // Semi-transparent fill
+          ctx.fillRect(rectX, rectY, rectW, rectH);
+          
+          ctx.restore();
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(rectX, rectY, rectW, rectH);
 
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillText(label, x + 7, y - 8);
+          const label = `${prediction.class} ${(prediction.confidence * 100).toFixed(1)}%`;
+          ctx.font = "600 14px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+          const textWidth = ctx.measureText(label).width;
+          const textHeight = 22;
+          const padding = 8;
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 2;
+          
+          const gradient = ctx.createLinearGradient(
+            rectX, 
+            rectY - textHeight - padding, 
+            rectX, 
+            rectY
+          );
+          gradient.addColorStop(0, color);
+          gradient.addColorStop(1, color + "E6");
+
+          ctx.fillStyle = gradient;
+          ctx.roundRect(
+            rectX - 2, 
+            rectY - textHeight - padding, 
+            textWidth + padding * 2, 
+            textHeight + padding,
+            4
+          );
+          ctx.fill();
+          
+          ctx.restore();
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 2;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillText(label, rectX + padding - 2, rectY - 8);
+          ctx.restore();
+        }
       });
     };
 
     if (img.complete) {
       img.onload(null as any);
     }
-  }, [results, selectedImage, labelVisibility, classColors]);
+  }, [results, selectedImage, detectionVisibility, classColors]);
 
   const clearImage = () => {
     setSelectedImage(null);
     setImageFile(null);
     setResults(null);
     setError(null);
-    setLabelVisibility({});
+    setDetectionVisibility({});
     setSearchTerm("");
     setZoom(100);
   };
-
+  // Calculate position label based on bounding box coordinates
+  const getPositionLabel = (pred: RoboflowPrediction, imageWidth: number, imageHeight: number): string => {
+    const centerX = pred.x;
+    const centerY = pred.y;
+    
+    // Determine horizontal position
+    let horizontal = "center";
+    if (centerX < imageWidth / 3) horizontal = "left";
+    else if (centerX > (imageWidth * 2) / 3) horizontal = "right";
+    
+    // Determine vertical position
+    let vertical = "center";
+    if (centerY < imageHeight / 3) vertical = "top";
+    else if (centerY > (imageHeight * 2) / 3) vertical = "bottom";
+    
+    if (horizontal === "center" && vertical === "center") return "center";
+    if (horizontal === "center") return vertical;
+    if (vertical === "center") return horizontal;
+    return `${vertical}-${horizontal}`;
+  };
   const copyJSON = () => {
     if (results) {
       navigator.clipboard.writeText(JSON.stringify(results, null, 2));
@@ -219,17 +386,29 @@ export default function HomePage() {
                 <p className="text-xs text-slate-600 dark:text-slate-400">Object Detection Platform</p>
               </div>
             </div>
-            {selectedImage && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearImage}
-                className="gap-1.5 text-xs"
-              >
-                <X className="w-3.5 h-3.5" />
-                New Analysis
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <Link href="/evaluation-new">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:text-white"
+                >
+                  <Target className="w-3.5 h-3.5" />
+                  Model Evaluation
+                </Button>
+              </Link>
+              {selectedImage && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearImage}
+                  className="gap-1.5 text-xs"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  New Analysis
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -369,7 +548,7 @@ export default function HomePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toggleAllLabels(true)}
+                        onClick={() => toggleAllDetections(true)}
                         className="gap-1 h-7 text-xs px-2"
                       >
                         <Eye className="w-3 h-3" />
@@ -378,7 +557,7 @@ export default function HomePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toggleAllLabels(false)}
+                        onClick={() => toggleAllDetections(false)}
                         className="gap-1 h-7 text-xs px-2"
                       >
                         <EyeOff className="w-3 h-3" />
@@ -424,34 +603,74 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Label Toggle Buttons */}
-              {results && Object.keys(classStats).length > 0 && (
+              {/* Individual Detection Toggle Buttons */}
+              {results && results.predictions.length > 0 && imageRef.current && (
                 <div>
                   <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                     <Eye className="w-3.5 h-3.5" />
-                    Toggle Labels ({Object.keys(classStats).length})
+                    Toggle Detections ({results.predictions.length})
                   </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {Object.entries(classStats).map(([className, count], idx) => (
-                      <button
-                        key={className}
-                        onClick={() => toggleLabel(className)}
-                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                          labelVisibility[className] !== false
-                            ? "text-white"
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-500"
-                        }`}
-                        style={{
-                          backgroundColor: labelVisibility[className] !== false
-                            ? COLORS[idx % COLORS.length]
-                            : undefined,
-                        }}
-                      >
-                        <span>{className}</span>
-                        <span className="ml-1.5 opacity-75">({count})</span>
-                      </button>
-                    ))}
-                  </div>
+                  <ScrollArea className="max-h-48">
+                    <div className="space-y-2 pr-2">
+                      {Object.entries(classStats).map(([className]) => {
+                        // Get all detections for this class
+                        const classDetections = results.predictions
+                          .map((pred, idx) => ({ pred, idx }))
+                          .filter(({ pred }) => pred.class === className);
+                        
+                        return (
+                          <div key={className} className="space-y-1">
+                            {/* Class header with toggle all button */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                {className} ({classDetections.length})
+                              </span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => toggleClassDetections(className, true)}
+                                  className="px-1.5 py-0.5 text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded"
+                                >
+                                  Show All
+                                </button>
+                                <button
+                                  onClick={() => toggleClassDetections(className, false)}
+                                  className="px-1.5 py-0.5 text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded"
+                                >
+                                  Hide All
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Individual detection toggles */}
+                            <div className="flex flex-wrap gap-1">
+                              {classDetections.map(({ pred, idx }, classIdx) => {
+                                const color = classColors[className];
+                                const isVisible = detectionVisibility[idx] !== false;
+                                
+                                return (
+                                  <button
+                                    key={idx}
+                                    onClick={() => toggleDetection(idx)}
+                                    className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${
+                                      isVisible
+                                        ? "text-white shadow-sm"
+                                        : "bg-slate-200 dark:bg-slate-700 text-slate-500"
+                                    }`}
+                                    style={{
+                                      backgroundColor: isVisible ? color : undefined,
+                                    }}
+                                    title={`${className} #${classIdx + 1} (${(pred.confidence * 100).toFixed(1)}%)`}
+                                  >
+                                    {className} {classIdx + 1}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
             </div>

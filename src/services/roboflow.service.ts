@@ -81,6 +81,42 @@ export class RoboflowService {
     };
   }
 
+  async getModelEvaluation(): Promise<any> {
+    try {
+      // Extract workspace and model info from API URL
+      // Format: https://serverless.roboflow.com/{workspace}/{model}/{version}
+      const urlParts = this.apiUrl.split('/');
+      const workspace = urlParts[3];
+      const modelWithVersion = urlParts[4];
+      const version = urlParts[5] || modelWithVersion.split('/').pop();
+      const model = modelWithVersion.split('/')[0];
+
+      // Roboflow evaluation endpoint (may need adjustment based on actual API)
+      const evaluationUrl = `https://api.roboflow.com/${workspace}/${model}/${version}`;
+      
+      console.log('Fetching evaluation from:', evaluationUrl);
+
+      const response = await fetch(`${evaluationUrl}?api_key=${this.apiKey}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Evaluation API Error:', errorText);
+        throw new Error(`Failed to fetch model evaluation: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching model evaluation:", error);
+      throw error;
+    }
+  }
+
   private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

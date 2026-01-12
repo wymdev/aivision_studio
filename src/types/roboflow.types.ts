@@ -7,6 +7,7 @@ export interface RoboflowPrediction {
   class: string;
   class_id: number;
   detection_id: string;
+  points?: Array<{ x: number; y: number }>;
 }
 
 export interface RoboflowResponse {
