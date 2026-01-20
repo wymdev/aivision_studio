@@ -1,7 +1,7 @@
 # Next.js 15 Production Project Setup Instructions
 
 ## Project Overview
-Production-ready Next.js 15 application with TypeScript, service layer architecture, Zustand state management, and shadcn/ui.
+Production-ready AI Vision Studio - Professional Object Detection Platform with TypeScript, service layer architecture, Zustand state management, and shadcn/ui.
 
 ## Setup Checklist
 

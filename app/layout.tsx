@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Stock Vision Admin",
-  description: "Production-ready Next.js 15 application with advanced architecture",
+  title: "AI Vision Studio",
+  description: "AI Vision Studio - Professional Object Detection Platform",
 };
 
 export default function RootLayout({

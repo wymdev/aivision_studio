@@ -1,7 +1,7 @@
 {
   "name": "stock-vision-admin",
   "version": "1.0.0",
-  "description": "Production-ready Next.js 15 application with advanced architecture",
+  "description": "AI Vision Studio - Professional Object Detection Platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
