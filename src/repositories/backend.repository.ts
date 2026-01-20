@@ -9,22 +9,22 @@ export class BackendRepository {
     this.apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY || "";
 
     // Debug logging
-    console.log('Backend Config:', {
-      apiUrl: this.apiUrl,
-      apiKeyLength: this.apiKey.length,
-      apiKeyPreview: this.apiKey.substring(0, 4) + '...'
-    });
+    // console.log('Backend Config:', {
+    //   apiUrl: this.apiUrl,
+    //   apiKeyLength: this.apiKey.length,
+    //   apiKeyPreview: this.apiKey.substring(0, 4) + '...'
+    // });
   }
 
   async detectObjects(imageFile: File): Promise<BackendResponse> {
     // Convert file to base64
     const base64Image = await this.fileToBase64(imageFile);
 
-    console.log('Sending request to Roboflow:', {
-      url: `${this.apiUrl}?api_key=${this.apiKey.substring(0, 4)}...`,
-      base64Length: base64Image.length,
-      base64Preview: base64Image.substring(0, 50) + '...'
-    });
+    // console.log('Sending request to Roboflow:', {
+    //   url: `${this.apiUrl}?api_key=${this.apiKey.substring(0, 4)}...`,
+    //   base64Length: base64Image.length,
+    //   base64Preview: base64Image.substring(0, 50) + '...'
+    // });
 
     const response = await fetch(`${this.apiUrl}?api_key=${this.apiKey}`, {
       method: "POST",

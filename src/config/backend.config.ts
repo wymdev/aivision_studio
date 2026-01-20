@@ -4,9 +4,9 @@ export const backendConfig = {
 };
 
 // Debug log on module load
-console.log('Backend Config Loaded:', {
-  apiUrl: backendConfig.apiUrl,
-  apiKeyPresent: !!backendConfig.apiKey,
-  apiKeyLength: backendConfig.apiKey.length,
-  apiKeyPreview: backendConfig.apiKey.substring(0, 4) + '...'
-});
+// console.log('Backend Config Loaded:', {
+//   apiUrl: backendConfig.apiUrl,
+//   apiKeyPresent: !!backendConfig.apiKey,
+//   apiKeyLength: backendConfig.apiKey.length,
+//   apiKeyPreview: backendConfig.apiKey.substring(0, 4) + '...'
+// });

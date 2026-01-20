@@ -27,8 +27,8 @@ export class BackendService {
       formData.append("confidence", "0.5");
       formData.append("overlap", "0.5");
 
-      console.log('Service sending request to:', this.apiUrl);
-      console.log('API Key length:', this.apiKey?.length);
+      // console.log('Service sending request to:', this.apiUrl);
+      // console.log('API Key length:', this.apiKey?.length);
 
       const response = await fetch(this.apiUrl, {
         method: "POST",

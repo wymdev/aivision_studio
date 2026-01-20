@@ -85,7 +85,7 @@ export function calculateIoU(box1: BoundingBox | GroundTruthBox, box2: BoundingB
   if (unionArea === 0) return 0;
 
   const iou = intersectionArea / unionArea;
-  
+
   // Log extreme cases for debugging
   if (iou > 0 && iou < 0.01) {
     console.log('⚠️ Very low IoU detected:', iou);
@@ -109,14 +109,14 @@ export function matchPredictions(
   console.log('Predictions:', predictions.length);
   console.log('Ground truths:', groundTruths.length);
   console.log('IoU threshold:', iouThreshold);
-  
+
   if (predictions.length > 0) {
     console.log('First prediction:', predictions[0]);
   }
   if (groundTruths.length > 0) {
     console.log('First ground truth:', groundTruths[0]);
   }
-  
+
   const matches: MatchedPrediction[] = [];
   const usedGroundTruths = new Set<number>();
 
@@ -135,21 +135,21 @@ export function matchPredictions(
       if (usedGroundTruths.has(i)) continue;
 
       const gt = groundTruths[i];
-      
+
       // Check class match first
       if (gt.class !== prediction.class) {
         continue;
       }
 
       const iou = calculateIoU(prediction, gt);
-      
+
       if (matches.length === 0 && i === 0) {
         console.log(`IoU between first prediction and first GT: ${iou.toFixed(3)}`);
         console.log('Prediction class:', prediction.class);
         console.log('GT class:', gt.class);
         console.log('Classes match:', gt.class === prediction.class);
       }
-      
+
       if (iou > bestIoU) {
         bestIoU = iou;
         bestMatch = gt;
@@ -170,7 +170,7 @@ export function matchPredictions(
       isCorrect,
     });
   }
-  
+
   const correctMatches = matches.filter(m => m.isCorrect).length;
   console.log(`✅ Matches found: ${correctMatches}/${predictions.length}`);
   console.log(`Unused ground truths: ${groundTruths.length - usedGroundTruths.size}/${groundTruths.length}`);
@@ -196,14 +196,14 @@ export function calculateClassMetrics(
   const falsePositives = matches.filter((m) => !m.isCorrect).length;
   const falseNegatives = classGroundTruths.length - truePositives;
 
-  const precision = truePositives + falsePositives > 0 
-    ? truePositives / (truePositives + falsePositives) 
+  const precision = truePositives + falsePositives > 0
+    ? truePositives / (truePositives + falsePositives)
     : 0;
-  const recall = truePositives + falseNegatives > 0 
-    ? truePositives / (truePositives + falseNegatives) 
+  const recall = truePositives + falseNegatives > 0
+    ? truePositives / (truePositives + falseNegatives)
     : 0;
-  const f1Score = precision + recall > 0 
-    ? (2 * precision * recall) / (precision + recall) 
+  const f1Score = precision + recall > 0
+    ? (2 * precision * recall) / (precision + recall)
     : 0;
 
   const averageIoU = matches.length > 0
@@ -234,9 +234,9 @@ export function buildConfusionMatrix(
 ): number[][] {
   const n = classNames.length;
   const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
-  
+
   const matches = matchPredictions(predictions, groundTruths, iouThreshold);
-  
+
   for (const match of matches) {
     if (match.isCorrect && match.groundTruth) {
       const actualIdx = classNames.indexOf(match.groundTruth.class);
@@ -321,7 +321,7 @@ export function calculateMetricsAtThresholds(
   return thresholds.map((threshold) => {
     const filteredPredictions = predictions.filter((p) => (p.confidence || 0) >= threshold);
     const metrics = calculateOverallMetrics(filteredPredictions, groundTruths, iouThreshold);
-    
+
     return {
       threshold,
       precision: metrics.precision,
@@ -340,7 +340,7 @@ export function findOptimalThreshold(
   iouThreshold: number = 0.5
 ): { threshold: number; f1Score: number } {
   const thresholdMetrics = calculateMetricsAtThresholds(predictions, groundTruths, undefined, iouThreshold);
-  
+
   let bestThreshold = 0.5;
   let bestF1 = 0;
 

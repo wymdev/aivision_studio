@@ -130,7 +130,7 @@ export function useEvaluationRunner() {
 
       // Check if it's COCO format
       if (data.images && data.annotations && data.categories) {
-        console.log("Detected COCO format, converting...");
+        // console.log("Detected COCO format, converting...");
         const converted = convertCocoToSimpleFormat(data);
         setGroundTruths(converted);
         setError(null);

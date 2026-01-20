@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
         }
 
         // Log configuration (safely)
-        console.log("Proxying request to:", apiUrl);
-        console.log("Using API Key (len):", apiKey?.length);
+        // console.log("Proxying request to:", apiUrl);
+        // console.log("Using API Key (len):", apiKey?.length);
 
         // Forward the request to the external API
         const response = await fetch(apiUrl, {
