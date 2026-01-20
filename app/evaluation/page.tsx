@@ -1,31 +1,31 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { roboflowService } from "@/services/roboflow.service";
+import { backendService } from "@/services/backend.service";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  TrendingUp, Target, Zap, Activity, Upload, 
-  Download, Trash2, RefreshCw, BarChart3, AlertCircle 
+import {
+  TrendingUp, Target, Zap, Activity, Upload,
+  Download, Trash2, RefreshCw, BarChart3, AlertCircle
 } from "lucide-react";
-import { 
-  calculateOverallMetrics, 
+import {
+  calculateOverallMetrics,
   calculateMetricsAtThresholds,
   findOptimalThreshold,
   BoundingBox,
   GroundTruthBox,
   OverallMetrics as Metrics
 } from "@/lib/metrics";
-import { 
-  saveEvaluation, 
-  getAllEvaluations, 
+import {
+  saveEvaluation,
+  getAllEvaluations,
   deleteEvaluation,
   exportEvaluation,
-  EvaluationRun 
+  EvaluationRun
 } from "@/lib/storage";
 
 interface ModelMetrics {
@@ -62,7 +62,7 @@ export default function EvaluationPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await roboflowService.getModelEvaluation();
+      const data = await backendService.getModelEvaluation();
       setMetrics(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch evaluation data");
@@ -137,8 +137,8 @@ export default function EvaluationPage() {
               <Target className="w-4 h-4 text-blue-600" />
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              {metrics.metrics.precision 
-                ? `${(metrics.metrics.precision * 100).toFixed(1)}%` 
+              {metrics.metrics.precision
+                ? `${(metrics.metrics.precision * 100).toFixed(1)}%`
                 : "N/A"}
             </p>
           </Card>
@@ -149,8 +149,8 @@ export default function EvaluationPage() {
               <TrendingUp className="w-4 h-4 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              {metrics.metrics.recall 
-                ? `${(metrics.metrics.recall * 100).toFixed(1)}%` 
+              {metrics.metrics.recall
+                ? `${(metrics.metrics.recall * 100).toFixed(1)}%`
                 : "N/A"}
             </p>
           </Card>
@@ -161,8 +161,8 @@ export default function EvaluationPage() {
               <Zap className="w-4 h-4 text-yellow-600" />
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              {metrics.metrics.mAP50 
-                ? `${(metrics.metrics.mAP50 * 100).toFixed(1)}%` 
+              {metrics.metrics.mAP50
+                ? `${(metrics.metrics.mAP50 * 100).toFixed(1)}%`
                 : "N/A"}
             </p>
           </Card>
@@ -173,8 +173,8 @@ export default function EvaluationPage() {
               <Activity className="w-4 h-4 text-purple-600" />
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              {metrics.metrics.mAP75 
-                ? `${(metrics.metrics.mAP75 * 100).toFixed(1)}%` 
+              {metrics.metrics.mAP75
+                ? `${(metrics.metrics.mAP75 * 100).toFixed(1)}%`
                 : "N/A"}
             </p>
           </Card>
@@ -188,8 +188,8 @@ export default function EvaluationPage() {
           <ScrollArea className="h-96">
             <div className="space-y-3">
               {metrics.classes.map((classMetric, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="flex-1">

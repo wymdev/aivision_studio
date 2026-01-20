@@ -1,30 +1,31 @@
 import { create } from "zustand";
 import {
-  RoboflowResponse,
-  RoboflowPrediction,
+  AiCountingData,
+  BackendPrediction,
   DetectionFilter,
-} from "@/types/roboflow.types";
+} from "@/types/backend.types";
 
 interface DetectionState {
   uploadedImage: string | null;
   imageFile: File | null;
-  detectionResult: RoboflowResponse | null;
-  filteredPredictions: RoboflowPrediction[];
+  detectionResult: AiCountingData | AiCountingData[] | null;
+  // filteredPredictions kept for compatibility but will be empty
+  filteredPredictions: BackendPrediction[];
   labelFilters: DetectionFilter;
   isLoading: boolean;
   error: string | null;
   searchQuery: string;
 
   setUploadedImage: (image: string, file: File) => void;
-  setDetectionResult: (result: RoboflowResponse) => void;
+  setDetectionResult: (result: AiCountingData | AiCountingData[]) => void;
   setLabelFilter: (label: string, visible: boolean) => void;
   toggleAllLabels: (visible: boolean) => void;
   setSearchQuery: (query: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
-  getFilteredPredictions: () => RoboflowPrediction[];
-  getSearchedResults: () => RoboflowPrediction[];
+  getFilteredPredictions: () => BackendPrediction[];
+  getSearchedResults: () => BackendPrediction[];
 }
 
 export const useDetectionStore = create<DetectionState>((set, get) => ({
@@ -49,18 +50,12 @@ export const useDetectionStore = create<DetectionState>((set, get) => ({
   },
 
   setDetectionResult: (result) => {
-    const uniqueLabels = Array.from(
-      new Set(result.predictions.map((p) => p.class))
-    );
-    const initialFilters = uniqueLabels.reduce((acc, label) => {
-      acc[label] = true;
-      return acc;
-    }, {} as DetectionFilter);
-
+    // New API doesn't return predictions list, so we can't filter bounding boxes.
+    // We just store the result.
     set({
       detectionResult: result,
-      filteredPredictions: result.predictions,
-      labelFilters: initialFilters,
+      filteredPredictions: [], // No individual predictions to filter
+      labelFilters: {},
       isLoading: false,
       error: null,
     });
@@ -68,30 +63,19 @@ export const useDetectionStore = create<DetectionState>((set, get) => ({
 
   setLabelFilter: (label, visible) => {
     const state = get();
+    // No-op for new API
     const newFilters = { ...state.labelFilters, [label]: visible };
-
     set({
       labelFilters: newFilters,
-      filteredPredictions: state.detectionResult
-        ? state.detectionResult.predictions.filter(
-            (p) => newFilters[p.class] !== false
-          )
-        : [],
+      filteredPredictions: [],
     });
   },
 
   toggleAllLabels: (visible) => {
-    const state = get();
-    const newFilters = Object.keys(state.labelFilters).reduce((acc, key) => {
-      acc[key] = visible;
-      return acc;
-    }, {} as DetectionFilter);
-
+    // No-op
     set({
-      labelFilters: newFilters,
-      filteredPredictions: visible
-        ? state.detectionResult?.predictions || []
-        : [],
+      labelFilters: {},
+      filteredPredictions: [],
     });
   },
 
@@ -114,24 +98,10 @@ export const useDetectionStore = create<DetectionState>((set, get) => ({
     }),
 
   getFilteredPredictions: () => {
-    const state = get();
-    if (!state.detectionResult) return [];
-    return state.detectionResult.predictions.filter(
-      (p) => state.labelFilters[p.class] !== false
-    );
+    return [];
   },
 
   getSearchedResults: () => {
-    const state = get();
-    const filtered = state.getFilteredPredictions();
-    if (!state.searchQuery) return filtered;
-
-    const query = state.searchQuery.toLowerCase();
-    return filtered.filter(
-      (p) =>
-        p.class.toLowerCase().includes(query) ||
-        p.confidence.toString().includes(query) ||
-        p.detection_id.toLowerCase().includes(query)
-    );
+    return [];
   },
 }));

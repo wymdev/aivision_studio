@@ -2,9 +2,9 @@
 
 import { useCallback } from "react";
 import { useDetectionStore } from "@/store/useDetectionStore";
-import { roboflowService } from "@/services/roboflow.service";
+import { backendService } from "@/services/backend.service";
 
-export function useRoboflowDetection() {
+export function useBackendDetection() {
   const {
     uploadedImage,
     imageFile,
@@ -47,7 +47,8 @@ export function useRoboflowDetection() {
     setError(null);
 
     try {
-      const result = await roboflowService.detectObjects(imageFile);
+      // Service now handles FormData and returns AiCountingData
+      const result = await backendService.detectObjects(imageFile);
       setDetectionResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze image");
@@ -57,15 +58,40 @@ export function useRoboflowDetection() {
   const getClassCounts = useCallback(() => {
     if (!detectionResult) return {};
 
-    return detectionResult.predictions.reduce((acc, pred) => {
-      acc[pred.class] = (acc[pred.class] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    // If result is array (multiple images), we might need to aggregate or handle differently
+    // For single image scenario:
+    if (Array.isArray(detectionResult)) {
+      // Aggregate counts from multiple results? Or just return first?
+      // For now, let's sum them up or just return empty if UI expects single map
+      return {};
+    }
+
+    // Map AiCountingData fields to the record expected by UI
+    const counts: Record<string, number> = {
+      "Packaging": detectionResult.packaging_count,
+      "Boxes in Packaging": detectionResult.boxes_in_packaging,
+      "Pallet": detectionResult.pallet_count,
+      "Boxes in Pallet": detectionResult.boxes_in_pallet,
+      "Layers": detectionResult.layer_count,
+      "Boxes in Layers": detectionResult.boxes_in_layers,
+      "Separated Boxes": detectionResult.separated_boxes,
+      "Total Boxes": detectionResult.total_boxes,
+    };
+    return counts;
   }, [detectionResult]);
 
   const getUniqueClasses = useCallback(() => {
     if (!detectionResult) return [];
-    return Array.from(new Set(detectionResult.predictions.map((p) => p.class)));
+    return [
+      "Packaging",
+      "Boxes in Packaging",
+      "Pallet",
+      "Boxes in Pallet",
+      "Layers",
+      "Boxes in Layers",
+      "Separated Boxes",
+      "Total Boxes"
+    ];
   }, [detectionResult]);
 
   return {

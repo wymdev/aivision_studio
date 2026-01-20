@@ -1,22 +1,22 @@
-import { RoboflowResponse } from "@/types/roboflow.types";
+import { BackendResponse } from "@/types/backend.types";
 
-export class RoboflowRepository {
+export class BackendRepository {
   private apiUrl: string;
   private apiKey: string;
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_ROBOFLOW_API_URL || "";
-    this.apiKey = process.env.NEXT_PUBLIC_ROBOFLOW_API_KEY || "";
-    
+    this.apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || "";
+    this.apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY || "";
+
     // Debug logging
-    console.log('Roboflow Config:', {
+    console.log('Backend Config:', {
       apiUrl: this.apiUrl,
       apiKeyLength: this.apiKey.length,
       apiKeyPreview: this.apiKey.substring(0, 4) + '...'
     });
   }
 
-  async detectObjects(imageFile: File): Promise<RoboflowResponse> {
+  async detectObjects(imageFile: File): Promise<BackendResponse> {
     // Convert file to base64
     const base64Image = await this.fileToBase64(imageFile);
 
@@ -49,7 +49,7 @@ export class RoboflowRepository {
     return await response.json();
   }
 
-  async detectFromBase64(base64Image: string): Promise<RoboflowResponse> {
+  async detectFromBase64(base64Image: string): Promise<BackendResponse> {
     const response = await fetch(`${this.apiUrl}?api_key=${this.apiKey}`, {
       method: "POST",
       headers: {
@@ -80,4 +80,4 @@ export class RoboflowRepository {
   }
 }
 
-export const roboflowRepository = new RoboflowRepository();
+export const backendRepository = new BackendRepository();

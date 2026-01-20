@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { roboflowService } from "@/services/roboflow.service";
+import { backendService } from "@/services/backend.service";
 import {
   calculateOverallMetrics,
   calculateMetricsAtThresholds,
@@ -111,11 +111,11 @@ export function useEvaluationRunner() {
   const handleImageUpload = useCallback((files: File[]) => {
     setImages(files);
     setError(null);
-    
+
     // Create URLs for visual debugger
     const urls = files.map((file) => URL.createObjectURL(file));
     setImageUrls(urls);
-    
+
     // Cleanup old URLs
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, []);
@@ -136,7 +136,7 @@ export function useEvaluationRunner() {
         setError(null);
         return true;
       }
-      
+
       // Check if it's already in simple format
       if (Array.isArray(data)) {
         setGroundTruths(data);
@@ -160,15 +160,17 @@ export function useEvaluationRunner() {
     attempt: number = 1
   ): Promise<BoundingBox[]> => {
     try {
-      const response = await roboflowService.detectObjects(image);
-      return response.predictions.map((pred) => ({
-        x: pred.x,
-        y: pred.y,
-        width: pred.width,
-        height: pred.height,
-        class: pred.class,
-        confidence: pred.confidence,
-      }));
+      // The new backend service returns AiCountingData which does NOT contain bounding box coordinates.
+      // Therefore, we cannot perform client-side evaluation against ground truth boxes.
+      // This is a limitation of the current API switching.
+
+      // We call the service but ignore the return value for evaluation purposes since it has no boxes.
+      await backendService.detectObjects(image);
+
+      console.warn("Backend API does not return bounding box coordinates. Evaluation metrics will be empty.");
+
+      // Return empty array as there are no raw predictions to evaluate
+      return [];
     } catch (err) {
       if (attempt < RETRY_ATTEMPTS) {
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
@@ -336,7 +338,7 @@ export function useEvaluationRunner() {
     (confThreshold: number, iouThresh: number) => {
       setConfidenceThreshold(confThreshold);
       setIouThreshold(iouThresh);
-      
+
       if (predictions.length > 0 && groundTruths.length > 0) {
         const metrics = calculateMetricsInternal(predictions, groundTruths, confThreshold, iouThresh);
         setCurrentMetrics(metrics);
@@ -383,7 +385,7 @@ export function useEvaluationRunner() {
     await saveEvaluationToDB(evaluation);
     const history = await getAllEvaluationSummaries();
     setEvaluationHistory(history);
-    
+
     return evaluation.id;
   }, [currentMetrics, images, confidenceThreshold, iouThreshold, predictions, groundTruths]);
 
