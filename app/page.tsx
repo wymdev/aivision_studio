@@ -628,7 +628,20 @@ export default function HomePage() {
 
                   {currentResult ? (
                     <div className="space-y-2">
-                      {countKeys.map((key) => {
+                      {/* Prominent Total Boxes Display */}
+                      {typeof (currentResult as any).total_boxes === 'number' && (
+                        <div className="mb-4 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg text-white">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-blue-100">Total Boxes</span>
+                            <Target className="w-5 h-5 text-blue-100 opacity-75" />
+                          </div>
+                          <div className="mt-1 text-4xl font-bold tracking-tight">
+                            {(currentResult as any).total_boxes}
+                          </div>
+                        </div>
+                      )}
+
+                      {countKeys.filter(key => key !== 'total_boxes').map((key) => {
                         const value = (currentResult as any)[key];
                         if (typeof value !== 'number') return null;
 
