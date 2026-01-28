@@ -586,6 +586,10 @@ export default function HomePage() {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 mt-2">
                                       {indices.map(idx => {
                                         const isVis = boxVisibility[`${selectedIndex}-${idx}`] !== false;
+                                        const prediction = currentResult?.roboflow_predictions?.[idx];
+                                        const detectionId = prediction?.detection_id;
+                                        const displayLabel = detectionId ? detectionId.split('-')[0] : `#${idx + 1}`;
+
                                         return (
                                           <button
                                             key={idx}
@@ -594,8 +598,9 @@ export default function HomePage() {
                                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                                               : 'bg-slate-100 dark:bg-slate-900 text-slate-400'
                                               }`}
+                                            title={detectionId || `Detection #${idx + 1}`}
                                           >
-                                            <span>#{idx + 1}</span>
+                                            <span>{displayLabel}</span>
                                             {isVis ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                           </button>
                                         );
