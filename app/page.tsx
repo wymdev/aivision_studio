@@ -274,24 +274,38 @@ export default function HomePage() {
 
                 {/* Actions */}
                 <div className="space-y-2">
-                  <Button
-                    onClick={analyzeImage}
-                    disabled={isLoading || imageFiles.length === 0}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Detect Objects
-                      </>
+                  <div className="flex items-center gap-2">
+                    {/* Execution Time Display (Left of Button) */}
+                    {executionTime !== null && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                          {(executionTime / 1000).toFixed(2)}s
+                        </span>
+                      </div>
                     )}
-                  </Button>
+
+                    <Button
+                      onClick={analyzeImage}
+                      disabled={isLoading || imageFiles.length === 0}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Detect Objects
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
+
+
 
                 {error && (
                   <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
@@ -656,21 +670,7 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      {/* Execution Time Card */}
-                      {executionTime !== null && (
-                        <div className="mb-4 p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Execution Time</span>
-                            <Zap className="w-5 h-5 text-amber-500 opacity-75" />
-                          </div>
-                          <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                            {(executionTime / 1000).toFixed(2)}s
-                            <span className="ml-2 text-xs font-normal text-slate-400">
-                              ({Math.round(executionTime)}ms)
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      {/* Execution Time Card REMOVED */}
 
                       {countKeys.filter(key => key !== 'total_boxes').map((key) => {
                         const value = (currentResult as any)[key];
@@ -741,8 +741,8 @@ export default function HomePage() {
               </div>
             </ScrollArea>
           </div>
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 }
