@@ -274,35 +274,36 @@ export default function HomePage() {
 
                 {/* Actions */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {/* Execution Time Display (Left of Button) */}
-                    {executionTime !== null && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <Zap className="w-4 h-4 text-amber-500" />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                          {(executionTime / 1000).toFixed(2)}s
-                        </span>
-                      </div>
+                  <Button
+                    onClick={analyzeImage}
+                    disabled={isLoading || imageFiles.length === 0}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Detect Objects
+                      </>
                     )}
+                  </Button>
 
-                    <Button
-                      onClick={analyzeImage}
-                      disabled={isLoading || imageFiles.length === 0}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Detect Objects
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Execution Time Display (Below Button) */}
+                  {executionTime !== null && (
+                    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Execution Time</span>
+                      </div>
+                      <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                        {(executionTime / 1000).toFixed(2)}s
+                      </span>
+                    </div>
+                  )}
                 </div>
 
 
