@@ -21,6 +21,7 @@ export default function HomePage() {
   const [zoom, setZoom] = useState(100);
   const [boxVisibility, setBoxVisibility] = useState<Record<string, boolean>>({});
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [executionTime, setExecutionTime] = useState<number | null>(null);
   const [controlsExpanded, setControlsExpanded] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +48,9 @@ export default function HomePage() {
   const processImages = (files: File[]) => {
     setImageFiles(files);
     setSelectedIndex(0);
+    setSelectedIndex(0);
     setResults(null);
+    setExecutionTime(null);
     setError(null);
 
     const reader = new FileReader();
@@ -86,9 +89,15 @@ export default function HomePage() {
 
     setIsLoading(true);
     setError(null);
+    setExecutionTime(null);
+
+    const startTime = performance.now();
 
     try {
       const response = await backendService.detectObjects(imageFiles);
+      const endTime = performance.now();
+      setExecutionTime(endTime - startTime);
+
       const newResults = Array.isArray(response) ? response : [response];
 
       const newVisibility: Record<string, boolean> = {};
@@ -120,6 +129,7 @@ export default function HomePage() {
     setImageFiles([]);
     setResults(null);
     setError(null);
+    setExecutionTime(null);
     setZoom(100);
     setSelectedIndex(0);
   };
@@ -642,6 +652,22 @@ export default function HomePage() {
                           </div>
                           <div className="mt-1 text-4xl font-bold tracking-tight">
                             {(currentResult as any).total_boxes}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Execution Time Card */}
+                      {executionTime !== null && (
+                        <div className="mb-4 p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Execution Time</span>
+                            <Zap className="w-5 h-5 text-amber-500 opacity-75" />
+                          </div>
+                          <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                            {(executionTime / 1000).toFixed(2)}s
+                            <span className="ml-2 text-xs font-normal text-slate-400">
+                              ({Math.round(executionTime)}ms)
+                            </span>
                           </div>
                         </div>
                       )}
