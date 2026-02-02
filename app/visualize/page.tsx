@@ -12,6 +12,7 @@ export default function VisualizePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AiCountingData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [executionTime, setExecutionTime] = useState<number | null>(null);
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +24,7 @@ export default function VisualizePage() {
         setSelectedImage(event.target?.result as string);
         setResult(null);
         setError(null);
+        setExecutionTime(null);
       };
       reader.readAsDataURL(file);
     }
@@ -36,9 +38,13 @@ export default function VisualizePage() {
     setError(null);
 
     try {
+      setExecutionTime(null);
+      const startTime = performance.now();
       // The service returns AiCountingData | AiCountingData[]
       // We assume single image upload here for visualize page
       const response = await backendService.detectObjects(imageFile);
+      const endTime = performance.now();
+      setExecutionTime(endTime - startTime);
 
       if (Array.isArray(response)) {
         setResult(response[0]);
@@ -168,8 +174,23 @@ export default function VisualizePage() {
         </div>
 
         {/* Right Column - Counts */}
-        <div className="w-1/3 border-l bg-card p-6 overflow-hidden flex flex-col">
-          <h2 className="mb-4 text-lg font-semibold">Counts</h2>
+        <div className="w-1/3 border-l bg-card p-6 overflow-hidden flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">Results Summary</h2>
+
+          {/* Execution Time Card */}
+          {executionTime !== null && (
+            <div className="rounded-lg border bg-background p-4 shadow-sm">
+              <div className="text-sm font-medium text-muted-foreground">Execution Time</div>
+              <div className="mt-1 text-2xl font-bold">
+                {(executionTime / 1000).toFixed(2)}s
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  ({Math.round(executionTime)}ms)
+                </span>
+              </div>
+            </div>
+          )}
+
+          <h2 className="text-lg font-semibold border-t pt-4">Counts</h2>
 
           {result ? (
             <div className="space-y-2 flex-1 overflow-auto">
