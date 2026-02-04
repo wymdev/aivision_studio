@@ -46,6 +46,7 @@ class AuthService {
     private async fetchToken(): Promise<string> {
         const tokenUrl = `${backendConfig.apiBaseUrl}${backendConfig.endpoints.token}`;
 
+
         const response = await fetch(tokenUrl, {
             method: 'POST',
             headers: {

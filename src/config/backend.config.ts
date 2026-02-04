@@ -4,7 +4,18 @@
  */
 export const backendConfig = {
   // Real API URL - Server Actions will call this directly
-  apiBaseUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1',
+  apiBaseUrl: (() => {
+    let url = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1';
+    // Remove trailing slash
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+    // Append /api/v1 if not present
+    if (!url.endsWith('/api/v1')) {
+      url = `${url}/api/v1`;
+    }
+    return url;
+  })(),
 
   // OAuth2 Client Credentials
   oauth2: {
