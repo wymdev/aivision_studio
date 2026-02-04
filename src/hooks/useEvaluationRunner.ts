@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { backendService } from "@/services/backend.service";
+import { detectObjectsAction } from "@/actions/backend.actions";
 import {
   calculateOverallMetrics,
   calculateMetricsAtThresholds,
@@ -165,7 +165,15 @@ export function useEvaluationRunner() {
       // This is a limitation of the current API switching.
 
       // We call the service but ignore the return value for evaluation purposes since it has no boxes.
-      await backendService.detectObjects(image);
+      const formData = new FormData();
+      formData.append("image", image);
+
+      // Call Server Action
+      const result = await detectObjectsAction(formData);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to analyze image");
+      }
 
       console.warn("Backend API does not return bounding box coordinates. Evaluation metrics will be empty.");
 
