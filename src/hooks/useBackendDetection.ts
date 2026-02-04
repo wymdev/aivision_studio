@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useDetectionStore } from "@/store/useDetectionStore";
-import { backendService } from "@/services/backend.service";
+import { detectObjectsAction } from "@/actions/backend.actions";
 
 export function useBackendDetection() {
   const {
@@ -48,8 +48,22 @@ export function useBackendDetection() {
 
     try {
       // Service now handles FormData and returns AiCountingData
-      const result = await backendService.detectObjects(imageFile);
-      setDetectionResult(result);
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      const result = await detectObjectsAction(formData);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to analyze image");
+      }
+
+      const data = result.data;
+      // Handle array vs single object
+      if (Array.isArray(data)) {
+        setDetectionResult(data[0]);
+      } else {
+        setDetectionResult(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze image");
     }

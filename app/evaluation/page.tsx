@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { backendService } from "@/services/backend.service";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,8 +61,10 @@ export default function EvaluationPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await backendService.getModelEvaluation();
-      setMetrics(data);
+      // const data = await backendService.getModelEvaluation();
+      // setMetrics(data);
+      console.log("Backend service removed. Fetching evaluation data disabled.");
+      setIsLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch evaluation data");
       console.error("Evaluation fetch error:", err);

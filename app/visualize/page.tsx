@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { backendService } from "@/services/backend.service";
+import { detectObjectsAction } from "@/actions/backend.actions";
 import {
   AiCountingData,
 } from "@/types/backend.types";
@@ -38,7 +38,17 @@ export default function VisualizePage() {
     try {
       // The service returns AiCountingData | AiCountingData[]
       // We assume single image upload here for visualize page
-      const response = await backendService.detectObjects(imageFile);
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      // Call Server Action
+      const result = await detectObjectsAction(formData);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to analyze image");
+      }
+
+      const response = result.data;
 
       if (Array.isArray(response)) {
         setResult(response[0]);
