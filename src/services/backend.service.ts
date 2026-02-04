@@ -1,17 +1,23 @@
 import { backendConfig } from "@/config/backend.config";
-import { AiCountingResponse, AiCountingData, BackendResponse, DetectionStats } from "@/types/backend.types";
+import { authService } from "@/services/auth.service";
+import { AiCountingResponse, AiCountingData } from "@/types/backend.types";
 
 export class BackendService {
-  private apiUrl: string;
-  private apiKey: string;
+  private apiBaseUrl: string;
 
   constructor() {
-    this.apiUrl = backendConfig.apiUrl;
-    this.apiKey = backendConfig.apiKey;
+    this.apiBaseUrl = backendConfig.apiBaseUrl;
   }
 
   async detectObjects(imageFile: File | File[]): Promise<AiCountingData | AiCountingData[]> {
+    return this.detectObjectsWithRetry(imageFile);
+  }
+
+  private async detectObjectsWithRetry(imageFile: File | File[], retryCount = 0): Promise<AiCountingData | AiCountingData[]> {
     try {
+      // Get OAuth2 access token
+      const accessToken = await authService.getToken();
+
       const formData = new FormData();
 
       // Check if it's an array of files or a single file
@@ -27,19 +33,26 @@ export class BackendService {
       formData.append("confidence", "0.5");
       formData.append("overlap", "0.5");
 
-      // console.log('Service sending request to:', this.apiUrl);
-      // console.log('API Key length:', this.apiKey?.length);
+      const predictionUrl = `${this.apiBaseUrl}${backendConfig.endpoints.prediction}`;
 
-      const response = await fetch(this.apiUrl, {
+      const response = await fetch(predictionUrl, {
         method: "POST",
         headers: {
-          "X-API-Key": this.apiKey,
+          "Authorization": `Bearer ${accessToken}`,
         },
         body: formData,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+
+        // If unauthorized, clear token and retry once
+        if (response.status === 401 && retryCount < 1) {
+          console.log("Token expired or invalid. Refreshing token and retrying...");
+          authService.clearToken();
+          return this.detectObjectsWithRetry(imageFile, retryCount + 1);
+        }
+
         console.error('API Error Response:', response.status, errorText);
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
@@ -61,10 +74,6 @@ export class BackendService {
       throw error;
     }
   }
-
-  // Legacy method kept or adapted if needed, but for now specific to new API
-  // The interface expects getDetectionStats but the new API doesn't return predictions list.
-  // We will need to adapt the consuming code.
 
   async getModelEvaluation(): Promise<any> {
     console.warn("getModelEvaluation is not implemented for the new backend.");

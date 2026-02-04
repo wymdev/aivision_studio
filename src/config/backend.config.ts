@@ -1,12 +1,26 @@
+/**
+ * Backend API Configuration
+ * Uses OAuth2 Client Credentials for authentication
+ */
 export const backendConfig = {
-  apiUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1/prediction',
-  apiKey: process.env.NEXT_PUBLIC_BACKEND_API_KEY || 'kspoef0230043290234naslkfoi@!$wrew',
-};
+  // Use local proxy to avoid CORS issues
+  apiBaseUrl: '/api/proxy',
 
-// Debug log on module load
-// console.log('Backend Config Loaded:', {
-//   apiUrl: backendConfig.apiUrl,
-//   apiKeyPresent: !!backendConfig.apiKey,
-//   apiKeyLength: backendConfig.apiKey.length,
-//   apiKeyPreview: backendConfig.apiKey.substring(0, 4) + '...'
-// });
+  // Real API URL for reference or server-side usage
+  realApiUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1',
+
+  // OAuth2 Client Credentials
+  oauth2: {
+    clientId: process.env.NEXT_PUBLIC_OAUTH2_CLIENT_ID || 'box-counting-client',
+    clientSecret: process.env.NEXT_PUBLIC_OAUTH2_CLIENT_SECRET || '',
+    grantType: 'client_credentials',
+  },
+
+  // API Endpoints
+  endpoints: {
+    token: '/auth/token',
+    prediction: '/prediction',
+    predictionUrl: '/prediction/url',
+    health: '/prediction/health',
+  },
+};

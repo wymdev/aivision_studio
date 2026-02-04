@@ -1,65 +1,78 @@
+import { backendConfig } from "@/config/backend.config";
+import { authService } from "@/services/auth.service";
 import { BackendResponse } from "@/types/backend.types";
 
 export class BackendRepository {
-  private apiUrl: string;
-  private apiKey: string;
+  private apiBaseUrl: string;
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || "";
-    this.apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY || "";
-
-    // Debug logging
-    // console.log('Backend Config:', {
-    //   apiUrl: this.apiUrl,
-    //   apiKeyLength: this.apiKey.length,
-    //   apiKeyPreview: this.apiKey.substring(0, 4) + '...'
-    // });
+    this.apiBaseUrl = backendConfig.apiBaseUrl;
   }
 
   async detectObjects(imageFile: File): Promise<BackendResponse> {
-    // Convert file to base64
+    return this.detectObjectsWithRetry(imageFile);
+  }
+
+  private async detectObjectsWithRetry(imageFile: File, retryCount = 0): Promise<BackendResponse> {
+    // Get OAuth2 access token
+    const accessToken = await authService.getToken();
+
     const base64Image = await this.fileToBase64(imageFile);
+    const predictionUrl = `${this.apiBaseUrl}${backendConfig.endpoints.prediction}`;
 
-    // console.log('Sending request to Roboflow:', {
-    //   url: `${this.apiUrl}?api_key=${this.apiKey.substring(0, 4)}...`,
-    //   base64Length: base64Image.length,
-    //   base64Preview: base64Image.substring(0, 50) + '...'
-    // });
-
-    const response = await fetch(`${this.apiUrl}?api_key=${this.apiKey}`, {
+    const response = await fetch(predictionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Bearer ${accessToken}`,
       },
       body: base64Image,
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Roboflow API Error:', {
+
+      if (response.status === 401 && retryCount < 1) {
+        console.log("Token expired. Retrying request...");
+        authService.clearToken();
+        return this.detectObjectsWithRetry(imageFile, retryCount + 1);
+      }
+
+      console.error('API Error:', {
         status: response.status,
         statusText: response.statusText,
         errorText,
-        apiUrl: this.apiUrl,
-        hasApiKey: !!this.apiKey
+        apiUrl: this.apiBaseUrl
       });
-      throw new Error(`Roboflow API error: ${response.status} - ${errorText || response.statusText}`);
+
+      throw new Error(`API error: ${response.status} - ${errorText || response.statusText}`);
     }
 
     return await response.json();
   }
 
   async detectFromBase64(base64Image: string): Promise<BackendResponse> {
-    const response = await fetch(`${this.apiUrl}?api_key=${this.apiKey}`, {
+    // Get OAuth2 access token
+    const accessToken = await authService.getToken();
+
+    const predictionUrl = `${this.apiBaseUrl}${backendConfig.endpoints.prediction}`;
+
+    const response = await fetch(predictionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Bearer ${accessToken}`,
       },
       body: base64Image,
     });
 
     if (!response.ok) {
-      throw new Error(`Roboflow API error: ${response.statusText}`);
+      if (response.status === 401) {
+        // Simple retry logic could be added here similar to detectObjects if needed
+        authService.clearToken();
+        throw new Error("Token expired. Please retry."); // For now, throw to propagate
+      }
+      throw new Error(`API error: ${response.statusText}`);
     }
 
     return await response.json();
