@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Upload, Sparkles, Image as ImageIcon, X, Eye, EyeOff, Zap, Target, ChevronLeft, ChevronRight, Code, ChevronDown, ChevronUp } from "lucide-react";
-import { backendService } from "@/services/backend.service";
+import { detectObjectsAction } from "@/actions/backend.actions";
 import {
   AiCountingData,
 } from "@/types/backend.types";
@@ -94,10 +94,20 @@ export default function HomePage() {
     const startTime = performance.now();
 
     try {
-      const response = await backendService.detectObjects(imageFiles);
+      const formData = new FormData();
+      imageFiles.forEach((file) => formData.append("image", file));
+
+      // Call Server Action
+      const result = await detectObjectsAction(formData);
+
       const endTime = performance.now();
       setExecutionTime(endTime - startTime);
 
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to analyze images");
+      }
+
+      const response = result.data;
       const newResults = Array.isArray(response) ? response : [response];
 
       const newVisibility: Record<string, boolean> = {};

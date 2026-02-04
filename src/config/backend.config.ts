@@ -3,11 +3,8 @@
  * Uses OAuth2 Client Credentials for authentication
  */
 export const backendConfig = {
-  // Use local proxy to avoid CORS issues
-  apiBaseUrl: '/api/proxy',
-
-  // Real API URL for reference or server-side usage
-  realApiUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1',
+  // Real API URL - Server Actions will call this directly
+  apiBaseUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://aicountingapi.xynotechmm.online/api/v1',
 
   // OAuth2 Client Credentials
   oauth2: {
