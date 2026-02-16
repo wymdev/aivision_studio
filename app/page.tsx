@@ -189,6 +189,31 @@ export default function HomePage() {
     return '#' + '00000'.substring(0, 6 - c.length) + c;
   };
 
+  const getSkuTotals = (result: AiCountingData | null) => {
+    if (!result?.sku_results) return [];
+    return Object.entries(result.sku_results)
+      .map(([sku, data]) => [sku, typeof data?.total_boxes === "number" ? data.total_boxes : 0] as const)
+      .filter(([, total]) => total > 0);
+  };
+
+  const getAggregateSkuTotals = (items: AiCountingData[] | null) => {
+    if (!items || items.length === 0) return [];
+    const totals: Record<string, number> = {};
+    items.forEach(res => {
+      if (!res.sku_results) return;
+      Object.entries(res.sku_results).forEach(([sku, data]) => {
+        const total = typeof data?.total_boxes === "number" ? data.total_boxes : 0;
+        if (total > 0) {
+          totals[sku] = (totals[sku] || 0) + total;
+        }
+      });
+    });
+    return Object.entries(totals).filter(([, total]) => total > 0);
+  };
+
+  const skuTotals = getSkuTotals(currentResult);
+  const aggregateSkuTotals = getAggregateSkuTotals(results);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
@@ -360,11 +385,23 @@ export default function HomePage() {
                     </div> */}
 
                     {/* Total Boxes Only */}
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
-                      <span className="text-sm font-medium">Total Boxes</span>
-                      <span className="text-2xl font-bold text-blue-600">
-                        {results.reduce((sum, res) => sum + (res.total_boxes || 0), 0)}
-                      </span>
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Total Boxes</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {results.reduce((sum, res) => sum + (res.total_boxes || 0), 0)}
+                        </span>
+                      </div>
+                      {aggregateSkuTotals.length > 0 && (
+                        <div className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                          {aggregateSkuTotals.map(([sku, total]) => (
+                            <div key={sku} className="flex items-center justify-between gap-2">
+                              <span className="truncate">{sku}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">{total}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Aggregate Count Stats - Commented out for now */}
@@ -678,6 +715,16 @@ export default function HomePage() {
                           <div className="mt-1 text-4xl font-bold tracking-tight">
                             {(currentResult as any).total_boxes}
                           </div>
+                          {skuTotals.length > 0 && (
+                            <div className="mt-2 space-y-1 text-xs text-blue-100">
+                              {skuTotals.map(([sku, total]) => (
+                                <div key={sku} className="flex items-center justify-between gap-2">
+                                  <span className="truncate">{sku}</span>
+                                  <span className="font-semibold text-white/90">{total}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 

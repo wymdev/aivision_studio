@@ -31,6 +31,18 @@ export interface AiCountingData {
   image_filename: string;
   annotated_image: string; // base64 string
   roboflow_predictions?: any[]; // Array of detections
+  sku_results?: Record<string, SkuCountingData>;
+}
+
+export interface SkuCountingData {
+  packaging_count: number;
+  boxes_in_packaging: number;
+  pallet_count: number;
+  boxes_in_pallet: number;
+  layer_count: number;
+  boxes_in_layers: number;
+  separated_boxes: number;
+  total_boxes: number;
 }
 
 export interface AiCountingMultipleData {
